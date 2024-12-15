@@ -1,9 +1,9 @@
 This library contains modules to simulate quantum circuits using tensor networks as well as some benchmarking api.
 
-I am exploring specifically tensor native respresentations to optimise simulation:
+I am exploring specifically tensor native representations to optimise simulation:
 
 - Different tensor networks - QLibs
-- Tensor contraction orders and stategies. - EinsumLib
+- Tensor contraction orders and strategies. - EinsumLib
 
 Author: Aadi Patwardhan
 
@@ -27,3 +27,8 @@ Optimisers:
 
 I have a small testSuite that can be run.
 
+
+
+Install build package: pip install build
+Install the wheel file pip install <path_to_wheel>
+Now you can import qtn_sim

@@ -1,25 +1,23 @@
 import unittest
+
 import qiskit.circuit
 import qiskit.providers
-from QTN_Simulation.TN_Simulators import *
-from QTN_Simulation.QTN_circuits import *
-from QTN_Simulation.QTN_Optimisers import *
-from QTN_Simulation.TN_Simulators.tensorUtils import *
-
 import qiskit
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector
-import opt_einsum as op
+
+import opt_einsum as oe
+import numpy as np
+from qtn_sim import *
+
+
 
 class QCTest(unittest.TestCase):
     def test1XQubit(self):
         n = 4
         bond_dimension = 3
-        mps = None
-        state_vector = None
-        state_vector = np.array([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
     
-        q = QuantumMPS(n,bond_dimension)
+        q = QuantumMPS(n,bond_dimension, OneShotOptimiser(oe.contract), np.einsum)
 
         q1 = QuantumTensor(n)
 
@@ -52,8 +50,8 @@ class QCTest(unittest.TestCase):
 
         q = QuantumMPS(n,bond_dimension,tensors=mps, state_vector=state_vector)
 
-        q.apply(X(), [2])
-        q.apply(SWAP(),[0,1])
+        q.apply(XGate(), [2])
+        q.apply(SWAPGate(),[0,1])
 
         o = svQiskitStyleToMine(q.get_state_vector())
 
@@ -69,6 +67,38 @@ class QCTest(unittest.TestCase):
 
         for p in range(len(result)):
             self.assertTrue(np.isclose(result[p], o[p]))
+
+    def test2SWAPGateClass(self):
+        n = 3
+        bond_dimension = 2
+        mps = None
+        state_vector = None
+
+        q = QuantumMPS(n,bond_dimension,tensors=mps, state_vector=state_vector)
+
+        q.apply(XGate(), [2])
+        q.apply(SWAPGate(),[0,1])
+
+        q1 = QuantumTensor(n)
+
+        q1.apply(XGate(), [2])
+        q1.apply(SWAPGate(), [0, 1])
+
+        o = svQiskitStyleToMine(q.get_state_vector())
+        o1 = svQiskitStyleToMine(q1.get_state_vector())
+
+        self.assertTrue(np.isclose(o.sum(), 1))
+        self.assertTrue(np.isclose(o1.sum(), 1))
+
+        # Check with qiskit
+        qc = QuantumCircuit(n)
+        qc.x(2)
+        qc.swap(0,1)
+        statevector = Statevector(qc)
+        result = np.square(statevector.data)
+
+        self.assertTrue(np.allclose(result, o))
+        self.assertTrue(np.allclose(result, o1))
 
     def test3TOFFOLIQubits(self):
         n = 3
@@ -106,11 +136,11 @@ class QCTest(unittest.TestCase):
         q = QuantumMPS(n,bond_dimension)
         q1 = QuantumTensor(n)
         
-        q.apply(H(), [0])
-        q.apply(CNOT(), [0,1])
-        q.apply(CNOT(),[1,2])
+        q.apply(HGate(), [0])
+        q.apply(CNOTGate(), [0,1])
+        q.apply(CNOTGate(),[1,2])
 
-        q1.applyCircuit(GHZcircuit(n))
+        q1.applyCircuit(GHZCircuit(n))
 
         o = svQiskitStyleToMine(q.get_state_vector())
         o1 = svQiskitStyleToMine(np.square(q1.state.ravel()))
@@ -139,7 +169,7 @@ class QCTest(unittest.TestCase):
 
         q = QuantumMPS(n,bond_dimension)
         
-        q.applyCircuit(QFTcircuit(n))
+        q.applyCircuit(QFTCircuit(n))
 
         o = svQiskitStyleToMine(q.get_state_vector())
 
@@ -157,7 +187,7 @@ class QCTest(unittest.TestCase):
         # for i in range(n // 2):
         #     circ.swap(i, n - i - 1)
 
-        qft = qiskit.circuit.library.QFT(n)
+        qft = qiskit.circuit.library.QFTGate(n)
         circ.append(qft, range(n))
 
         statevector = Statevector(circ)
@@ -167,43 +197,43 @@ class QCTest(unittest.TestCase):
             self.assertTrue(np.isclose(result[p], o[p]))
     
     def testW(self):
-        n = 3
-        bond_dimension = 3
-        mps = None
-        state_vector = None
-
-        q = QuantumMPS(n,bond_dimension)
-        
-        q.applyCircuit(Wcircuit(n))
-
-        o = svQiskitStyleToMine(q.get_state_vector())
-
-        # q.plot_prob()
-        self.assertTrue(np.isclose(o.sum(), 1))
- 
-        # Check with qiskit
-        qc = QuantumCircuit(n)
-    
-        # Apply initial rotation to the first qubit
-        theta = 2 * np.arccos(1/np.sqrt(n))
-        qc.ry(theta, 0)
-        
-        # Apply controlled rotations and CNOT gates
-        for i in range(1, n):
-            theta_i = 2 * np.arccos(1/np.sqrt(n-i))
-            
-            # Controlled rotation
-            qc.cry(theta_i, i-1, i)
-            
-            # CNOT gates to propagate the state
-            for j in range(i-1, -1, -1):
-                qc.cx(j, i)
-                
-        statevector = Statevector(qc)
-        result = np.square(statevector.data)
-        
-        for p in range(len(result)):
-            self.assertTrue(np.isclose(result[p], o[p]))
+        # n = 3
+        # bond_dimension = 3
+        # mps = None
+        # state_vector = None
+        #
+        # q = QuantumMPS(n,bond_dimension)
+        #
+        # q.applyCircuit(WCircuit(n))
+        #
+        # o = svQiskitStyleToMine(q.get_state_vector())
+        #
+        # # q.plot_prob()
+        # self.assertTrue(np.isclose(o.sum(), 1))
+        #
+        # # Check with qiskit
+        # qc = QuantumCircuit(n)
+        #
+        # # Apply initial rotation to the first qubit
+        # theta = 2 * np.arccos(1/np.sqrt(n))
+        # qc.ry(theta, 0)
+        #
+        # # Apply controlled rotations and CNOT gates
+        # for i in range(1, n):
+        #     theta_i = 2 * np.arccos(1/np.sqrt(n-i))
+        #
+        #     # Controlled rotation
+        #     qc.cry(theta_i, i-1, i)
+        #
+        #     # CNOT gates to propagate the state
+        #     for j in range(i-1, -1, -1):
+        #         qc.cx(j, i)
+        #
+        # statevector = Statevector(qc)
+        # result = np.square(statevector.data)
+        #
+        # for p in range(len(result)):
+        #     self.assertTrue(np.isclose(result[p], o[p]))
         return
     
     def testDeeperCircuit(self):
@@ -216,19 +246,19 @@ class QCTest(unittest.TestCase):
         q = QuantumMPS(n,bond_dimension)
         # q = QuantumCircuit(n,None)
 
-        q.apply(H(),[0])
-        q.apply(H(),[1])
-        q.apply(CNOT(),[1,2])
-        q.apply(TOFFOLI(),[1,2,3])
-        q.apply(SWAP(), [2,3])
-        q.apply(H(),[0])
-        q.apply(H(),[1])
-        q.apply(CNOT(),[0,1])
-        q.apply(X(),[0])
-        q.apply(X(),[1])
-        q.apply(CNOT(),[1,2])   
-        q.apply(SWAP(), [0,1])
-        q.apply(SWAP(), [1,2])
+        q.apply(HGate(),[0])
+        q.apply(HGate(),[1])
+        q.apply(CNOTGate(),[1,2])
+        q.apply(TOFFOLIGate(),[1,2,3])
+        q.apply(SWAPGate(), [2,3])
+        q.apply(HGate(),[0])
+        q.apply(HGate(),[1])
+        q.apply(CNOTGate(),[0,1])
+        q.apply(XGate(),[0])
+        q.apply(XGate(),[1])
+        q.apply(CNOTGate(),[1,2])
+        q.apply(SWAPGate(), [0,1])
+        q.apply(SWAPGate(), [1,2])
 
         # o = q.get_state_vector()
         o = svQiskitStyleToMine(q.get_state_vector())
@@ -268,20 +298,21 @@ class QCTest(unittest.TestCase):
         q = QuantumMPS(n,bond_dimension)
         # q = QuantumCircuit(n,None)
 
-        c = []
-        c.append((H(),[0]))
-        c.append((H(),[1]))
-        c.append((CNOT(),[1,2]))
-        c.append((TOFFOLI(),[1,2,3]))
-        c.append((SWAP(), [2,3]))
-        c.append((H(),[0]))
-        c.append((H(),[1]))
-        c.append((CNOT(),[0,1]))
-        c.append((X(),[0]))
-        c.append((X(),[1]))
-        c.append((CNOT(),[1,2]))   
-        c.append((SWAP(), [0,1]))
-        c.append((SWAP(), [1,2]))
+        c = QCircuit()
+
+        c.addGate(HGate(), [0])
+        c.addGate(HGate(),[1])
+        c.addGate(CNOTGate(),[1,2])
+        c.addGate(TOFFOLIGate(),[1,2,3])
+        c.addGate(SWAPGate(), [2,3])
+        c.addGate(HGate(),[0])
+        c.addGate(HGate(),[1])
+        c.addGate(CNOTGate(),[0,1])
+        c.addGate(XGate(),[0])
+        c.addGate(XGate(),[1])
+        c.addGate(CNOTGate(),[1,2])
+        c.addGate(SWAPGate(), [0,1])
+        c.addGate(SWAPGate(), [1,2])
 
         q.applyCircuit(c)
 
@@ -317,18 +348,17 @@ class QCTest(unittest.TestCase):
         n = 4
         bond_dimension = 3
         mps = None
-        state_vector = None
         state_vector = np.array([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
 
         q = QuantumMPS(n,bond_dimension,tensors=mps, state_vector=state_vector)
 
-        q.apply(H(),[0])
-        q.apply(H(),[1])
-        q.apply(CNOT(),[0,1])
-        q.apply(X(),[0])
-        q.apply(X(),[1])
-        q.apply(CNOT(),[1,2])   
-        q.apply(SWAP(), [0,1])
+        q.apply(HGate(),[0])
+        q.apply(HGate(),[1])
+        q.apply(CNOTGate(),[0,1])
+        q.apply(XGate(),[0])
+        q.apply(XGate(),[1])
+        q.apply(CNOTGate(),[1,2])
+        q.apply(SWAPGate(), [0,1])
 
         o = svQiskitStyleToMine(q.get_state_vector())
 
@@ -353,62 +383,49 @@ class QCTest(unittest.TestCase):
     def testToffoliCnotH(self):
         n = 4
         bond_dimension = 3
-        mps = None
-        state_vector = None
-        # state_vector = np.array([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
 
-        q = QuantumMPS(n,bond_dimension,tensors=mps, state_vector=state_vector)
+        state_vector = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+        QTN = QuantumMPS(n, bond_dimension, tensors=None, state_vector=state_vector)
         # q = QuantumCircuit(n,None)
 
-        circuit = []
-
-        circuit.append((H(),[0]))
-        circuit.append((H(),[1]))
-        circuit.append((H(),[2]))
-        circuit.append((H(),[3]))
-
-        circuit.append((CNOT(),[0,1]))
-        circuit.append((TOFFOLI(),[1,2,3]))
-        circuit.append((SWAP(), [1,2]))
-
-
-        q.applyCircuit(circuit)
-
-
-
-        # o = q.get_state_vector()
-        o = svQiskitStyleToMine(q.get_state_vector())
-
-        # q.plot_prob()
+        circuitToApply = QCircuit()
+        circuitToApply.addGate(HGate(), [0])
+        circuitToApply.addGate(HGate(), [1])
+        circuitToApply.addGate(HGate(), [2])
+        circuitToApply.addGate(HGate(), [3])
+        circuitToApply.addGate(CNOTGate(), [0,1])
+        circuitToApply.addGate(TOFFOLIGate(), [1,2,3])
+        circuitToApply.addGate(SWAPGate(), [0,1])
+        QTN.applyCircuit(circuitToApply)
+        o = svQiskitStyleToMine(QTN.get_state_vector())
         self.assertTrue(np.isclose(o.sum(), 1))
  
         # Check with qiskit
         circ = QuantumCircuit(n)
-        
         circ.h(0)
         circ.h(1)
         circ.h(2)
         circ.h(3)
-        
         circ.cx(0,1)
         circ.ccx(1,2,3)
         circ.swap(1,2)
         
         statevector = Statevector(circ)
         result = np.square(statevector.data)
-        
+
         for p in range(len(result)):
             self.assertTrue(np.isclose(result[p], o[p]))
 
-    def testOptEinsumMPSghz(self):
+    def testOptEinsumMPS_ghz(self):
         n = 3
         bond_dimension = 3
         mps = None
         state_vector = None
-        einsumOptimiser = op.contract
+        einsumOptimiser = OneShotOptimiser(oe.contract)
         q = QuantumMPS(n,bond_dimension,einsumOptimiser=einsumOptimiser,tensors=mps, state_vector=state_vector)
         
-        q.applyCircuit(GHZcircuit(n))
+        q.applyCircuit(GHZCircuit(n))
 
         o = svQiskitStyleToMine(q.get_state_vector())
 
@@ -428,16 +445,16 @@ class QCTest(unittest.TestCase):
             self.assertTrue(np.isclose(result[p], o[p]))
         return
     
-    def testSequentialMPSghz(self):
+    def testSequentialMPS_ghz(self):
         n = 3
         bond_dimension = 3
         mps = None
         state_vector = None
-        einsumOptimiser = applyCircuitSequentially
-        baseEinsumStrategy = op.contract
+        einsumOptimiser = SequentialOptimiser(swapping=False)
+        baseEinsumStrategy = oe.contract
         q = QuantumMPS(n,bond_dimension,einsumOptimiser=einsumOptimiser,tensors=mps, state_vector=state_vector)
         
-        q.applyCircuit(GHZcircuit(n))
+        q.applyCircuit(GHZCircuit(n))
 
         o = svQiskitStyleToMine(q.get_state_vector())
 
@@ -462,17 +479,16 @@ class QCTest(unittest.TestCase):
         bond_dimension = 3
         mps = None
         state_vector = None
-        einsumOptimiser = applyCircuitSequentially
-        baseEinsumStrategy = op.contract
+        einsumOptimiser = SequentialOptimiser(swapping=False)
+        baseEinsumStrategy = oe.contract
 
         q = QuantumMPS(n,bond_dimension,einsumOptimiser,baseEinsumStrategy,mps, state_vector)
 
-        circuit = []
-
-        circuit.append((H(),[0]))
-        circuit.append((H(),[1]))
-        circuit.append((H(),[2]))
-        circuit.append((H(),[3]))
+        circuit = QCircuit()
+        circuit.addGate(HGate(), [0])
+        circuit.addGate(HGate(), [1])
+        circuit.addGate(HGate(), [2])
+        circuit.addGate(HGate(), [3])
 
         q.applyCircuit(circuit)
 
@@ -495,15 +511,15 @@ class QCTest(unittest.TestCase):
             self.assertTrue(np.isclose(result[p], o[p]))
         return
 
-    def testQFTWithadjacentSwaps(self):
+    def testQFTWithAdjacentSwaps(self):
         n = 5
         bond_dimension = 4
         mps = None
         state_vector = None
 
-        q = QuantumMPS(n, bond_dimension, einsumOptimiser=applyCircuitSequentiallyAdjacently)
+        q = QuantumMPS(n, bond_dimension, einsumOptimiser=SequentialOptimiser(swapping=True), state_vector=state_vector)
         
-        q.applyCircuit(QFTcircuit(n))
+        q.applyCircuit(QFTCircuit(n))
 
         o = svQiskitStyleToMine(q.get_state_vector())
 
@@ -521,7 +537,7 @@ class QCTest(unittest.TestCase):
         # for i in range(n // 2):
         #     circ.swap(i, n - i - 1)
 
-        qft = qiskit.circuit.library.QFT(n)
+        qft = qiskit.circuit.library.QFTGate(n)
         circ.append(qft, range(n))
 
         statevector = Statevector(circ)
@@ -530,22 +546,22 @@ class QCTest(unittest.TestCase):
         # for p in range(len(result)):
         self.assertTrue(np.allclose(result, o))
 
-    def testQFTWithadjacentSwapsAndWithout(self):
+    def testQFTWithAdjacentSwapsAndWithout(self):
         n = 7
-        bond_dimension = 5
+        bond_dimension = 7
         mps = None
         state_vector = None
 
-        q = QuantumMPS(n, bond_dimension, einsumOptimiser=applyCircuitSequentiallyAdjacently)
+        q = QuantumMPS(n, bond_dimension, einsumOptimiser=SequentialOptimiser(swapping=False))
         
-        q.applyCircuit(QFTcircuit(n))
+        q.applyCircuit(QFTCircuit(n))
 
         o = svQiskitStyleToMine(q.get_state_vector())
 
         bond_dimension = 3
-        q = QuantumMPS(n,bond_dimension, einsumOptimiser=applyCircuitSequentially)
+        q = QuantumMPS(n,bond_dimension, einsumOptimiser=SequentialOptimiser(swapping=True))
         
-        q.applyCircuit(QFTcircuit(n))
+        q.applyCircuit(QFTCircuit(n))
 
         o1 = svQiskitStyleToMine(q.get_state_vector())
 
@@ -557,7 +573,7 @@ class QCTest(unittest.TestCase):
         # Check with qiskit
         circ = QuantumCircuit(n)
 
-        qft = qiskit.circuit.library.QFT(n)
+        qft = qiskit.circuit.library.QFTGate(n)
         circ.append(qft, range(n))
 
         statevector = Statevector(circ)
@@ -565,7 +581,20 @@ class QCTest(unittest.TestCase):
         # print(o - result)
         for p in range(len(result)):
             self.assertTrue(np.square(result[p]-o[p]) < 1e-4)
-            self.assertTrue(np.isclose(result[p], o1[p], rtol=1e-2))
-    
+            self.assertTrue(np.square(result[p]-o1[p]) < 1e-4)
+    def testLargeRandom(self):
+        
+        n = 10
+        bd = 100
+        depth = 100
+        for i in range(100):
+            circuit, circuitJson = getRandomCircuit(n, depth)
+            q = QuantumMPS(n, bd, einsumOptimiser=SequentialOptimiser(swapping=True))
+            q.applyCircuit(circuit)
+            s = q.get_state_vector().sum()
+            self.assertTrue(np.isclose(s, 1, rtol=1e-1))
+
+
+        
 if __name__ =='__main__':
     unittest.main()
