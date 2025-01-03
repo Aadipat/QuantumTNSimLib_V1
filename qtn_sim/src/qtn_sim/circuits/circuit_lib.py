@@ -13,7 +13,6 @@ class Gate:
         self.tensor = tensor
         self.params = params
 
-
 class SingleQubitGate(Gate):
     def __init__(self, gateId, tensor, params=[]):
         super().__init__(gateId, tensor, params)
@@ -64,6 +63,11 @@ class RYGate(SingleQubitGate):
         super().__init__("RY", RY(params[0]), params)
 
 
+class GGate(SingleQubitGate):
+    def __init__(self, params):
+        super().__init__("G", G(params[0]), params)
+
+
 class CNOTGate(TwoQubitGate):
     def __init__(self):
         super().__init__("CNOT", CNOT())
@@ -92,6 +96,27 @@ class CRYGate(TwoQubitGate):
 class TOFFOLIGate(ThreeQubitGate):
     def __init__(self):
         super().__init__("CCX", TOFFOLI())
+
+
+# Produce Controlled gate given a unitary gate
+# Puts the gate in the right bottom corner. 
+class CUnitaryTensorGate(Gate):
+
+    def __init__(self, uGate : Gate):
+
+        dim = len(uGate.tensor.shape)/2
+
+        newDim = dim+1
+        
+        gateT = uGate.tensor
+        
+        matrix = np.reshape(gateT, (int(np.pow(2,dim)),int(np.pow(2,dim))))
+
+        newMatrix = expandWithIdentity(matrix)
+
+        tensor = np.reshape(newMatrix, tuple([2 for i in range(int(2*newDim))]))
+
+        super().__init__("C" + uGate.id, tensor)
 
 
 class QCircuit:
@@ -144,51 +169,27 @@ class GHZCircuit(QCircuit):
         super().__init__(circuit)
 
 
-# class WCircuit(QCircuit):
-#     def __init__(self, n):
-#         super().__init__(Wcircuit(n))
+class WCircuitLinear(QCircuit):
+    def __init__(self, n):
+        
+        circuit = []
+        circuit.append((XGate(), [0]))
 
+        def B(p, n1,n2):
+            B = []
+            UnitaryGate = CUnitaryTensorGate(GGate([1.0/p]))
+            B.append((UnitaryGate, [n1,n2]))
+            B.append((SWAPGate(), [n1,n2]))
+            B.append((CNOTGate(), [n1,n2]))
+            B.append((SWAPGate(), [n1,n2]))
+            return B
+        
+        for i in range(n-1):
+            
+            for (g,i) in B(n-i, i,i+1):
+                circuit.append((g,i))
 
-# DEPRECATED! NOT WORKING beyond n = 3!!!
-# def Wcircuit(n):
-#     circuit = []
-#     theta = 2 * np.arccos(1 / np.sqrt(n))
-#     circuit.append((RY(theta), [0]))
-#     for i in range(1, n):
-#         theta_i = 2 * np.arccos(1 / np.sqrt(n - i))
-#         circuit.append((CRY(theta_i), [i - 1, i]))
-#         for j in range(i - 1, -1, -1):
-#             circuit.append((CNOT(), [j, i]))
-#     return circuit
-
-#
-# def WRecursive(n):
-#     circuit = QCircuit()
-#     if n == 1:
-#         circuit.addGate(XGate(), [0])
-#         return circuit
-#
-#     # Create W state for n-1 qubits
-#     sub_w = WRecursive(n - 1)
-#     mini = n
-#     for (gate,indices) in sub_w.gateList:
-#         mini = min(mini, np.min(indices))
-#     sW = QCircuit()
-#     for i in range(len(sub_w.gateList)):
-#         new_indices = [j - mini for j in sub_w.gateList[i][1]]
-#         sW.addGate(sub_w.gateList[i][0],new_indices)
-#
-#     circuit.gateList += sW.gateList
-#
-#     # Apply rotation to distribute amplitude
-#     theta = 2 * np.arcsin(1 / np.sqrt(n))
-#     circuit.addGate(RYGate([theta]), [n-1])
-#
-#     # Distribute amplitude to the new qubit
-#     for i in range(n - 1):
-#         circuit.addGate(CNOTGate(), [i, n-1])
-#
-#     return circuit
+        super().__init__(circuit)
 
 
 circuitMap = {
@@ -259,7 +260,7 @@ def getRandomIndices(n, k):
     return sorted(indices)
 
 
-def getRandomCircuit(n, depth, asJson=False):
+def getRandomCircuit(n, depth, withNonAdjacent = True, asJson=False):
     circuit = []
     for d in range(int((random.random() * depth) + 1)):
         gate = np.array([])
@@ -279,7 +280,12 @@ def getRandomCircuit(n, depth, asJson=False):
             gate = gateFunc(parameters)
         elif len(signature.parameters.values()) == 0:
             gate = gateFunc()
-        indices = getRandomIndices(n, int(len(gate.tensor.shape) / 2))
+        indices = []
+        if withNonAdjacent:
+            indices = getRandomIndices(n, int(len(gate.tensor.shape) / 2))
+        else:
+            i = random.choice([i for i in range(n+1-int(len(gate.tensor.shape)/2))])
+            indices = [i + j for j in range(int(len(gate.tensor.shape)/2))]
         circuit.append((gate, indices))
     circuitJson = QCircuit(circuit).toJSONDict()
     if asJson:
@@ -287,11 +293,11 @@ def getRandomCircuit(n, depth, asJson=False):
     return QCircuit(circuit), circuitJson
 
 
-def createCircuits(numberOfCircuits, numberOfQubits, maxCircuitDepth, filePath=None):
+def createCircuits(numberOfCircuits, numberOfQubits, maxCircuitDepth, withNonAdjacent = True, filePath=None):
     circuits = []
     circuitsJson = []
     for i in range(numberOfCircuits):
-        circuit, circuitJson = getRandomCircuit(numberOfQubits, maxCircuitDepth)
+        circuit, circuitJson = getRandomCircuit(numberOfQubits, maxCircuitDepth, withNonAdjacent=withNonAdjacent)
         circuitsJson.append(circuitJson)
         circuits.append(circuit)
     circuitsJsonDump = {

@@ -8,6 +8,26 @@ I am exploring specifically tensor native representations to optimise simulation
 Author: Aadi Patwardhan
 
 
+API REFERENCE:
+
+qtn_sim package:
+
+    tn_simulators (Modules of simulators)
+        - QuantumMPS
+        - QuantumTensor : 1 tensor
+
+    circuits
+        - circuits API
+
+    optimisers
+        - circuit application optimisers
+        - sequential, one shot. 
+
+    qtn_plotting
+        - Some plotting functions to see memory and time usage for simulators to run specific circuits. 
+
+
+
 The API:
 
 Tensor networks:
