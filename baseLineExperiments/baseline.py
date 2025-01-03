@@ -43,6 +43,12 @@ fig = plot("Taking the qubits into QFT with" + optimiser.toString(),
         [(QuantumMPS, "MPS")],
         getPerformanceForQubitNumber,QFTCircuit,avgIt,data, f, fi)
 
+# fig = plot("Taking the qubits into W state",
+#         "number of qubits",
+#         [(QuantumMPS, "MPS")],
+#         getPerformanceForQubitNumber,WCircuitLinear,10, data)
+
+
 # fig = plot("Applying QFT on the " + str(n) + " qubits",
 #         "max bond dimension",
 #         [(QuantumMPS, "MPS")],

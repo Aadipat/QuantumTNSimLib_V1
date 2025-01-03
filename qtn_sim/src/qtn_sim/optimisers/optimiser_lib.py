@@ -13,7 +13,7 @@ class MyOptimiser:
         return
 
     def toString(self):
-        return "myOptimiser";
+        return "myOptimiser"
 
 class SequentialOptimiser(MyOptimiser):
 

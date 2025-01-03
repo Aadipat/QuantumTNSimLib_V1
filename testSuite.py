@@ -197,44 +197,23 @@ class QCTest(unittest.TestCase):
             self.assertTrue(np.isclose(result[p], o[p]))
     
     def testW(self):
-        # n = 3
-        # bond_dimension = 3
-        # mps = None
-        # state_vector = None
+        n = 10
+        bond_dimension = 3
+        mps = None
+        state_vector = None
         #
-        # q = QuantumMPS(n,bond_dimension)
+        q = QuantumMPS(n,bond_dimension)
         #
-        # q.applyCircuit(WCircuit(n))
-        #
-        # o = svQiskitStyleToMine(q.get_state_vector())
-        #
-        # # q.plot_prob()
-        # self.assertTrue(np.isclose(o.sum(), 1))
-        #
-        # # Check with qiskit
-        # qc = QuantumCircuit(n)
-        #
-        # # Apply initial rotation to the first qubit
-        # theta = 2 * np.arccos(1/np.sqrt(n))
-        # qc.ry(theta, 0)
-        #
-        # # Apply controlled rotations and CNOT gates
-        # for i in range(1, n):
-        #     theta_i = 2 * np.arccos(1/np.sqrt(n-i))
-        #
-        #     # Controlled rotation
-        #     qc.cry(theta_i, i-1, i)
-        #
-        #     # CNOT gates to propagate the state
-        #     for j in range(i-1, -1, -1):
-        #         qc.cx(j, i)
-        #
-        # statevector = Statevector(qc)
-        # result = np.square(statevector.data)
-        #
-        # for p in range(len(result)):
-        #     self.assertTrue(np.isclose(result[p], o[p]))
-        return
+        q.applyCircuit(WCircuitLinear(n))
+
+        o = q.get_state_vector()    
+        for i in o:
+            if np.isclose(0,i):
+                continue
+
+            self.assertTrue(np.isclose(1.0/n,i))
+
+        self.assertTrue(np.isclose(o.sum(), 1))
     
     def testDeeperCircuit(self):
         n = 4
@@ -528,14 +507,6 @@ class QCTest(unittest.TestCase):
  
         # Check with qiskit
         circ = QuantumCircuit(n)
-        # for i in range(n):
-        #     circ.h(i)
-        # for j in range(i + 1, n):
-        #     angle = np.pi / (2 ** (j - i))
-        #     circ.cp(angle, i,j)
-            
-        # for i in range(n // 2):
-        #     circ.swap(i, n - i - 1)
 
         qft = qiskit.circuit.library.QFTGate(n)
         circ.append(qft, range(n))
@@ -582,6 +553,7 @@ class QCTest(unittest.TestCase):
         for p in range(len(result)):
             self.assertTrue(np.square(result[p]-o[p]) < 1e-4)
             self.assertTrue(np.square(result[p]-o1[p]) < 1e-4)
+    
     def testLargeRandom(self):
         
         n = 10
@@ -594,7 +566,18 @@ class QCTest(unittest.TestCase):
             s = q.get_state_vector().sum()
             self.assertTrue(np.isclose(s, 1, rtol=1e-1))
 
-
+    def testCU(self):
         
+        U = XGate()
+
+        CU = CUnitaryTensorGate(U)
+        self.assertTrue(np.allclose(CNOTGate().tensor, CU.tensor))
+
+
+        U = CNOTGate()
+
+        CU = CUnitaryTensorGate(U)
+        self.assertTrue(np.allclose(TOFFOLIGate().tensor, CU.tensor))
+     
 if __name__ =='__main__':
     unittest.main()

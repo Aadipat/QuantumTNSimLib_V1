@@ -28,6 +28,10 @@ def S():
 def T():
     return np.array([[1, 0], [0, np.exp((complex(0, 1) * np.pi / 4))]])
 
+# G gate for the W circuit:
+def G(p):
+    return np.array([[complex(np.sqrt(p),0), complex(-np.sqrt(1-p),0)], [complex(np.sqrt(1-p),0), complex(np.sqrt(p),0)]])
+
 
 # RY gate
 def RY(angle):
@@ -70,6 +74,19 @@ def CRY(angle):
     cp = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, np.cos(angle / 2.0), -np.sin(angle / 2.0)],
                    [0, 0, np.sin(angle / 2.0), np.cos(angle / 2.0)]])
     return np.reshape(cp, (2, 2, 2, 2))
+
+
+
+# Expanded matrix, to create a controlled gate for any unitary matrix.
+def expandWithIdentity(matrix):
+    original_shape = matrix.shape
+    new_shape = (original_shape[0] * 2, original_shape[1] * 2)
+    # Create a new identity matrix of double the size
+    result = np.eye(new_shape[0], dtype=matrix.dtype)
+    # Place the original matrix in the bottom right corner
+    result[-original_shape[0]:, -original_shape[1]:] = matrix
+    return result
+
 
 
 # 3 QUBIT GATES
