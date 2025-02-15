@@ -1,0 +1,5 @@
+numpy
+pandas
+matplotlib
+opt_einsum
+pytest

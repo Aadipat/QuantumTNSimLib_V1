@@ -49,6 +49,8 @@ I have a small testSuite that can be run.
 
 
 
-Install build package: pip install build
+To build from source code, inside qtn_sim run: python setup.py bdist_wheel
+
+Or only download the wheel file
 Install the wheel file pip install <path_to_wheel>
 Now you can import qtn_sim
