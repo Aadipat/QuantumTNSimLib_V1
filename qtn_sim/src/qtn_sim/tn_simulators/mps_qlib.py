@@ -67,7 +67,7 @@ class QuantumMPS(QSimulator):
         s = ""
         lines = []
         for t in range(len(self.tensors)):
-            tensorS = einsumForTensor(self.tensors[t], t * 3, self.einsumOptimiser)
+            tensorS = einsumForTensor(self.tensors[t], t * 3, self.baseEinsumStrategy)
             s += tensorS
             if t < len(self.tensors) - 1:
                 s += ","
@@ -131,8 +131,11 @@ class QuantumMPS(QSimulator):
 
         Returns : void method. The MPS is altered.
         """
-        newTensors = self.einsumOptimiser.evaluate(self, circuit)
-        self.tensors = newTensors
+        self = self.einsumOptimiser.evaluate(self, circuit)
+        # self.tensors = newTensors
+        if len(self.tensors) is 1 :
+            self.tensors = split_tensor_SVD(self.bond_dimension, self.n, self.tensors[0], 1, 1)
+
 
     # Apply gate on certain qubits
     def apply(self, gate : Gate, qubits : list[int] = None):

@@ -39,7 +39,7 @@ class SequentialOptimiser(MyOptimiser):
         self.swapping = swapping
         return
 
-    def evaluate(self, qsimulator, circuit : QCircuit):
+    def evaluate(self, qsimulator : QSimulator, circuit : QCircuit):
         """
         Right now works with QuantumMPS only
         Evaluates the circuit on the QSimulator (quantum state abstraction) 
@@ -80,9 +80,9 @@ class OneShotOptimiser(MyOptimiser):
         super().__init__()
         self.strategy = strategy
         return
-    def evaluate(self, qsimulator, circuit : QCircuit):
+    def evaluate(self, qsimulator : QSimulator, circuit : QCircuit):
         """
-        Right now works with QuantumMPS only
+        Alters the tensors list to 1 tensor!
         Evaluates the circuit on the QSimulator (quantum state abstraction) 
         
         Returns:
@@ -93,7 +93,9 @@ class OneShotOptimiser(MyOptimiser):
         einsum_str = einsumForCircuit(tensorS, lines, circuit, qsimulator.einsumOptimiser)
         tensors = qsimulator.tensors + [c[0].tensor for c in circuit.gateList]
         tensor = self.strategy(einsum_str, *tensors, optimize='greedy')
-        return split_tensor_SVD(qsimulator.bond_dimension, qsimulator.n, tensor, 1, 1)
+        # return split_tensor_SVD(qsimulator.bond_dimension, qsimulator.n, tensor, 1, 1)
+        qsimulator.tensors = [tensor]
+        return qsimulator
 
 
 
@@ -102,13 +104,13 @@ class OneShotOptimiser(MyOptimiser):
 
 
 
-def applyCircuitSequentially(qSimulator, circuit:QCircuit):
+def applyCircuitSequentially(qSimulator : QSimulator, circuit:QCircuit):
     for (gate, indices) in circuit.gateList:
         qSimulator.apply(gate,indices)
-    return qSimulator.tensors
+    return qSimulator
 
 swapGate = SWAPGate()
-def applyCircuitSequentiallyAdjacently(qSimulator, circuit:QCircuit):
+def applyCircuitSequentiallyAdjacently(qSimulator : QSimulator, circuit:QCircuit):
     # return applyCircuitSequentially(qSimulator, circuit)
     for (gate, indices) in circuit.gateList:
         # print(indices)
@@ -132,7 +134,7 @@ def applyCircuitSequentiallyAdjacently(qSimulator, circuit:QCircuit):
         if nonadjacent and len(swaps) > 0:
             for i in swaps:
                 qSimulator.apply(swapGate,i)
-    return qSimulator.tensors
+    return qSimulator
 
 
 

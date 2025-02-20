@@ -3,6 +3,7 @@ from .einsum_lib import *
 import opt_einsum as oe
 from qtn_sim.circuits import *
 from qtn_sim.tn_simulators.tensor_utils import *
+from qtn_sim.optimisers.optimiser_lib import *
 
 # This lib allows users to simulate a statevector like 1 tensor approach, 
 # apply gates on certain qubits and 
@@ -10,8 +11,8 @@ from qtn_sim.tn_simulators.tensor_utils import *
 class QuantumTensor(QSimulator):
 
     def __init__(self, n: int = 1, 
-                 einsumOptimiser = oe.contract, 
-                 baseEinsumStrategy = oe.contract, 
+                 einsumOptimiser : MyOptimiser = SequentialOptimiser(), 
+                 baseEinsumStrategy = np.einsum, 
                  init_arr : np.array = None):
         """
         Creates a quantum 1 tensor object with n qubit lines
@@ -52,6 +53,24 @@ class QuantumTensor(QSimulator):
         shape.append(1)
         state = np.reshape(state, tuple(shape))
         self.state = state
+        self.tensors = [state]
+        self.n = n
+    
+    # Get state tensor string and lines for circuit
+    def getTensorStringAndLines(self):
+        """
+        This method gives the tensor string for the mps and the lines list
+        May be used for one shot simulation
+
+        Returns : the einsum string for the state and the lines
+        """
+        s = ""
+        lines = []
+        tensorS = einsumForTensor(self.tensors[0], 0, self.baseEinsumStrategy)
+        s += tensorS
+        for i in range(self.n):
+            lines.append(tensorS[i+1])
+        return s, lines
 
     def get_state_vector(self):
         """
@@ -62,7 +81,7 @@ class QuantumTensor(QSimulator):
         
         Returns : the state vector as a numpy array of probabilities, not amplitudes.
         """
-        return np.ravel(self.state)
+        return np.ravel(np.square(self.state))
 
     def apply(self, gate : Gate, qubits : list[int] = None):
         """
@@ -76,6 +95,7 @@ class QuantumTensor(QSimulator):
         if isinstance(gate, Gate):
             gate = gate.tensor
         self.state = applyGateTensorOnTensor(self.state, gate, qubits, self.baseEinsumStrategy)
+        self.tensors = [self.state]
 
     def applyCircuit(self, circuit : QCircuit):
         """
@@ -84,8 +104,10 @@ class QuantumTensor(QSimulator):
 
         Returns : void method. The state is altered.
         """
-        for (gate, indices) in circuit.gateList:
-            self.apply(gate,indices)
+        # for (gate, indices) in circuit.gateList:
+        #     self.apply(gate,indices)
+        self = self.einsumOptimiser.evaluate(self, circuit)
+        self.state = self.tensors[0]
      
     def plot_prob(self):
         """
