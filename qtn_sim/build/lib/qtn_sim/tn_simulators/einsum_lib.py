@@ -143,7 +143,9 @@ from abc import ABC, abstractmethod
 # Abstract class for qSimulators
 
 class QSimulator(ABC):
-    
+
+    tensors = []
+
     @abstractmethod
     def get_state_vector(self):
         pass
@@ -155,5 +157,8 @@ class QSimulator(ABC):
         pass
     @abstractmethod
     def plot_prob(self):
+        pass
+    @abstractmethod
+    def getTensorStringAndLines(self):
         pass
 

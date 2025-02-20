@@ -19,7 +19,7 @@ class QCTest(unittest.TestCase):
     
         q = QuantumMPS(n,bond_dimension, OneShotOptimiser(oe.contract), np.einsum)
 
-        q1 = QuantumTensor(n)
+        q1 = QuantumTensor(n, OneShotOptimiser(oe.contract))
 
         q1.apply(X(),[0])
 
@@ -35,6 +35,35 @@ class QCTest(unittest.TestCase):
         # Check with qiskit
         qc = QuantumCircuit(n)
         qc.x(0) 
+        statevector = Statevector(qc)
+        result = np.square(statevector.data)
+
+        for p in range(len(result)):
+            self.assertTrue(np.isclose(result[p], o[p]))
+            self.assertTrue(np.isclose(result[p], o1[p]))
+
+    def testRY(self):
+        n = 4
+        bond_dimension = 3
+    
+        q = QuantumMPS(n,bond_dimension, OneShotOptimiser(oe.contract), np.einsum)
+
+        q1 = QuantumTensor(n, OneShotOptimiser(oe.contract))
+
+        q1.apply(RYGate([0.5]),[0])
+
+        q.apply(RYGate([0.5]),[0])
+        
+        o = svQiskitStyleToMine(q.get_state_vector())
+        o1 = svQiskitStyleToMine(np.square(q1.state.ravel()))
+
+        # q.plot_prob()
+        self.assertTrue(np.isclose(o.sum(), 1))
+        self.assertTrue(np.isclose(o1.sum(), 1))
+
+        # Check with qiskit
+        qc = QuantumCircuit(n)
+        qc.ry(0.5, 0) 
         statevector = Statevector(qc)
         result = np.square(statevector.data)
 
@@ -564,7 +593,7 @@ class QCTest(unittest.TestCase):
             q = QuantumMPS(n, bd, einsumOptimiser=SequentialOptimiser(swapping=True))
             q.applyCircuit(circuit)
             s = q.get_state_vector().sum()
-            self.assertTrue(np.isclose(s, 1, rtol=1e-1))
+            self.assertTrue(np.isclose(s, 1, rtol=1e-2))
 
     def testCU(self):
         
