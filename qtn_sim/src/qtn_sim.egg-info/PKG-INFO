@@ -1,10 +1,5 @@
 Metadata-Version: 2.1
-Name: qtn_sim
+Name: qtn-sim
 Version: 0.1.0
 Summary: My qtn_sim package v1!
 Author: Aadi Patwardhan
-Requires-Dist: numpy
-Requires-Dist: pandas
-Requires-Dist: matplotlib
-Requires-Dist: opt_einsum
-Requires-Dist: pytest

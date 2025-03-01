@@ -260,16 +260,30 @@ def getRandomIndices(n, k):
     return sorted(indices)
 
 
-def getRandomCircuit(n, depth, withNonAdjacent = True, asJson=False):
+def getRandomCircuit(n, depth, gatesUsed = circuitMap, probablityOfAdjacent=0.0, withNonAdjacent = True, asJson=False):
+    """
+    Generates a random quantum circuit.
+    Parameters:
+    n (int): Number of qubits in the circuit.
+    depth (int): Maximum depth of the circuit.
+    gatesUsed (dict): Dictionary of gates to be used in the circuit. Defaults to circuitMap. str (gate.id) -> Gate object
+    withNonAdjacent (bool): If True, allows non-adjacent qubit gates. Defaults to True.
+    asJson (bool): If True, returns the circuit as a JSON string. Defaults to False.
+    Returns:
+    tuple: A tuple containing the QCircuit object and its JSON representation (if asJson is True).
+    """
+    if not withNonAdjacent:
+        probablityOfAdjacent = 1.0
+
     circuit = []
     for d in range(int((random.random() * depth) + 1)):
         gate = np.array([])
         if n == 1:
-            gateId = random.choice(list(singleQGateMap.keys()))
+            gateId = random.choice(list(set(singleQGateMap.keys()).intersection(gatesUsed.keys())))
         elif n == 2:
-            gateId = random.choice(list((singleQGateMap | twoQGateMap).keys()))
+            gateId = random.choice(list(set((singleQGateMap | twoQGateMap).keys()).intersection(gatesUsed.keys())))
         else:
-            gateId = random.choice(list(circuitMap.keys()))
+            gateId = random.choice(list(set(circuitMap.keys()).intersection(gatesUsed.keys())))
         gateFunc = circuitMap[gateId]
         signature = inspect.signature(gateFunc)
         parameters = []
@@ -281,7 +295,8 @@ def getRandomCircuit(n, depth, withNonAdjacent = True, asJson=False):
         elif len(signature.parameters.values()) == 0:
             gate = gateFunc()
         indices = []
-        if withNonAdjacent:
+        p = random.random()
+        if p > probablityOfAdjacent:
             indices = getRandomIndices(n, int(len(gate.tensor.shape) / 2))
         else:
             i = random.choice([i for i in range(n+1-int(len(gate.tensor.shape)/2))])
@@ -293,11 +308,27 @@ def getRandomCircuit(n, depth, withNonAdjacent = True, asJson=False):
     return QCircuit(circuit), circuitJson
 
 
-def createCircuits(numberOfCircuits, numberOfQubits, maxCircuitDepth, withNonAdjacent = True, filePath=None):
+def createCircuits(numberOfCircuits, numberOfQubits, maxCircuitDepth, gatesUsed = circuitMap,  probablityOfAdjacent = 0.0, withNonAdjacent = True, filePath=None):
+    """
+    Generates a specified number of random quantum circuits and optionally saves them to a JSON file.
+    Args:
+        numberOfCircuits (int): The number of circuits to generate.
+        numberOfQubits (int): The number of qubits in each circuit.
+        maxCircuitDepth (int): The maximum depth of each circuit.
+        gatesUsed (dict, optional): A mapping of gates to be used in the circuits. Defaults to circuitMap. str (gate.id) -> Gate object
+        probablityOfAdjacent (float, optional): The probability of using adjacent gates. Defaults to 0.0.
+        withNonAdjacent (bool, optional): Whether to include non-adjacent gates in the circuits. Defaults to True.
+        filePath (str, optional): The file path to save the generated circuits in JSON format. If None, the circuits are not saved to a file. Defaults to None.
+    Returns:
+        list: A list of generated quantum circuits.
+    """
+    if not withNonAdjacent:
+        probablityOfAdjacent = 1.0
+    
     circuits = []
     circuitsJson = []
     for i in range(numberOfCircuits):
-        circuit, circuitJson = getRandomCircuit(numberOfQubits, maxCircuitDepth, withNonAdjacent=withNonAdjacent)
+        circuit, circuitJson = getRandomCircuit(numberOfQubits, maxCircuitDepth, gatesUsed, probablityOfAdjacent=probablityOfAdjacent)
         circuitsJson.append(circuitJson)
         circuits.append(circuit)
     circuitsJsonDump = {
@@ -310,6 +341,13 @@ def createCircuits(numberOfCircuits, numberOfQubits, maxCircuitDepth, withNonAdj
 
 
 def readCircuits(filePath):
+    """
+    Reads quantum circuits from a JSON file and returns them as a list of Qcircuit objects.
+    Args:
+        filePath (str): The path to the JSON file containing the circuits.
+    Returns:
+        list: A list of Qcircuit objects parsed from the JSON file.
+    """
     circuitsJson = None
     with open(filePath, 'r') as file:
         circuitsJson = json.load(file)

@@ -48,7 +48,7 @@ Optimisers:
 I have a small testSuite that can be run.
 
 
-
+Make sure you install build, setuptools and wheel packages before using setup.py to install
 To build from source code, inside qtn_sim run: python setup.py bdist_wheel
 
 Or only download the wheel file
