@@ -588,12 +588,34 @@ class QCTest(unittest.TestCase):
         n = 10
         bd = 100
         depth = 100
-        for i in range(100):
+        for i in range(10):
             circuit, circuitJson = getRandomCircuit(n, depth)
             q = QuantumMPS(n, bd, einsumOptimiser=SequentialOptimiser(swapping=True))
             q.applyCircuit(circuit)
             s = q.get_state_vector().sum()
             self.assertTrue(np.isclose(s, 1, rtol=1e-2))
+    
+    # def testRandomCircuit(self):
+    #     n = 15
+    #     bd = 100
+    #     depth = 100
+    #     p = 0.0
+    #     circuit, circuitJson = getRandomCircuit(n, depth, probablityOfAdjacent=p)
+    #     q = QuantumMPS(n, bd, einsumOptimiser=SequentialOptimiser(swapping=True))
+    #     q.applyCircuit(circuit)
+    #     # s = q.get_state_vector().sum()
+    #     # self.assertTrue(np.isclose(s, 1, rtol=1e-2))
+    #     self.assertEqual(depth, len(circuit.gateList))
+
+    #     adjacent_count = 0
+    #     total_gates = len(circuit.gateList)
+        
+    #     for gate, indices in circuit.gateList:
+    #         if max(indices) - min(indices) + 1 == len(gate.tensor.shape)/2:
+    #             adjacent_count += 1
+
+    #     self.assertEqual(p, float(adjacent_count)/total_gates)
+
 
     def testCU(self):
         

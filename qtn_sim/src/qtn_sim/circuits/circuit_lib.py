@@ -265,7 +265,7 @@ def getRandomCircuit(n, depth, gatesUsed = circuitMap, probablityOfAdjacent=0.0,
     Generates a random quantum circuit.
     Parameters:
     n (int): Number of qubits in the circuit.
-    depth (int): Maximum depth of the circuit.
+    depth (int): Depth of the circuit.
     gatesUsed (dict): Dictionary of gates to be used in the circuit. Defaults to circuitMap. str (gate.id) -> Gate object
     withNonAdjacent (bool): If True, allows non-adjacent qubit gates. Defaults to True.
     asJson (bool): If True, returns the circuit as a JSON string. Defaults to False.
@@ -274,16 +274,21 @@ def getRandomCircuit(n, depth, gatesUsed = circuitMap, probablityOfAdjacent=0.0,
     """
     if not withNonAdjacent:
         probablityOfAdjacent = 1.0
+    
+    pCount = int(depth*probablityOfAdjacent)
 
     circuit = []
-    for d in range(int((random.random() * depth) + 1)):
+    for d in range(depth):
         gate = np.array([])
         if n == 1:
             gateId = random.choice(list(set(singleQGateMap.keys()).intersection(gatesUsed.keys())))
         elif n == 2:
             gateId = random.choice(list(set((singleQGateMap | twoQGateMap).keys()).intersection(gatesUsed.keys())))
         else:
-            gateId = random.choice(list(set(circuitMap.keys()).intersection(gatesUsed.keys())))
+            if d >= pCount:
+                gateId = random.choice(list(set(twoQGateMap.keys() | threeQGateMap.keys()).intersection(gatesUsed.keys())))
+            else:
+                gateId = random.choice(list(set(circuitMap.keys()).intersection(gatesUsed.keys())))
         gateFunc = circuitMap[gateId]
         signature = inspect.signature(gateFunc)
         parameters = []
@@ -295,16 +300,16 @@ def getRandomCircuit(n, depth, gatesUsed = circuitMap, probablityOfAdjacent=0.0,
         elif len(signature.parameters.values()) == 0:
             gate = gateFunc()
         indices = []
-        p = random.random()
-        if p > probablityOfAdjacent:
+        if d >= pCount:
             indices = getRandomIndices(n, int(len(gate.tensor.shape) / 2))
         else:
             i = random.choice([i for i in range(n+1-int(len(gate.tensor.shape)/2))])
             indices = [i + j for j in range(int(len(gate.tensor.shape)/2))]
         circuit.append((gate, indices))
+    random.shuffle(circuit)
     circuitJson = QCircuit(circuit).toJSONDict()
     if asJson:
-        circuitJson = json.dumps(circuitJson)
+        circuitJson = json.dumps(circuitJson, indent=4)
     return QCircuit(circuit), circuitJson
 
 
@@ -328,7 +333,7 @@ def createCircuits(numberOfCircuits, numberOfQubits, maxCircuitDepth, gatesUsed 
     circuits = []
     circuitsJson = []
     for i in range(numberOfCircuits):
-        circuit, circuitJson = getRandomCircuit(numberOfQubits, maxCircuitDepth, gatesUsed, probablityOfAdjacent=probablityOfAdjacent)
+        circuit, circuitJson = getRandomCircuit(numberOfQubits, int((random.random() * maxCircuitDepth) + 1), gatesUsed, probablityOfAdjacent=probablityOfAdjacent)
         circuitsJson.append(circuitJson)
         circuits.append(circuit)
     circuitsJsonDump = {
