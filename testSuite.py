@@ -1,3 +1,23 @@
+# Copyright (c) 2024 Aadi Patwardhan
+#
+# This file (testSuite.py) is licensed under the MIT License.
+# All other files in this repository are not licensed for reuse.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this file, to deal in it without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of this file.
+#
+# THIS FILE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THIS FILE OR THE USE OR OTHER DEALINGS IN IT.
+
 import unittest
 
 import qiskit.circuit
